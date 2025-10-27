@@ -33,8 +33,9 @@
 ---
 
 ## 데모
-- 이미지: (별도 추가 예정)
-- 영상: [YouTube 데모](https://www.youtube.com/watch?v=SYVyU6_6rpY&feature=youtu.be)
+- 이미지: ![기능경기대회 사진](https://github.com/user-attachments/assets/651a50d2-85aa-46cd-8a12-89577680cea2)
+
+- 영상: https://www.youtube.com/watch?v=SYVyU6_6rpY
 
 ---
 
