@@ -33,7 +33,8 @@
 ---
 
 ## 데모
-- 이미지:![기능경기대회 사진](https://github.com/user-attachments/assets/611b9f73-c594-4ee8-9de7-3a8dbc8e3e9f){: width="500" height="700"}
+- 이미지:![기능경기대회 사진]<img src="https://github.com/user-attachments/assets/611b9f73-c594-4ee8-9de7-3a8dbc8e3e9f" width="500" height="700" />
+
 
 
 - 영상: https://www.youtube.com/watch?v=SYVyU6_6rpY
