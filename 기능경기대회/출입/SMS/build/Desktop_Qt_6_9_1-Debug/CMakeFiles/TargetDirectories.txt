@@ -1,0 +1,9 @@
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/SafetyManagementSystem.dir
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/edit_cache.dir
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/rebuild_cache.dir
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/list_install_components.dir
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/install.dir
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/install/local.dir
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/install/strip.dir
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/SafetyManagementSystem_autogen_timestamp_deps.dir
+/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/CMakeFiles/SafetyManagementSystem_autogen.dir

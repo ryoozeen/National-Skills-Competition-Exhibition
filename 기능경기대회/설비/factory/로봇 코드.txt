@@ -1,0 +1,180 @@
+# robot_server.py — 진공 안전 OFF + conv_has_part 이벤트 + 좌표 분리(CONV_LOAD / SEN)
+from DobotEDU import *  # DobotLab Python Lab 환경에서 제공되는 Dobot 제어 API 전체 임포트
+import socket, time, json, traceback  # TCP 소켓 통신, 대기, JSON 직렬화, 예외 스택 추적
+
+HOST, PORT = "127.0.0.1", 5000  # 로봇 제어 서버가 바인딩할 주소/포트(로컬 루프백, 5000번)
+
+def _call(fn, **kw):
+    try:
+        return fn(**kw, isQueued=1)  # 기본 경로: 큐 모드(isQueued=1)로 명령 넣기(지원 함수라면)
+    except TypeError:
+        return fn(**kw)  # 하위 호환: 해당 API가 isQueued 인자를 지원하지 않으면 직접 호출
+
+def ptp(x, y, z, r=0): _call(m_lite.set_ptpcmd, ptp_mode=0, x=x, y=y, z=z, r=r)  # PTP 직선 이동(기본 모드)
+
+def vacuum_on():   _call(m_lite.set_endeffector_suctioncup, enable=True,  on=True)   # 진공(흡착) ON
+def vacuum_off():  _call(m_lite.set_endeffector_suctioncup, enable=False, on=False)  # 진공(흡착) OFF(안전상 기본)
+def home():        _call(m_lite.set_homecmd)  # 원점 복귀(Home) 명령
+def wait_s(sec):   m_lite.wait(delay=float(sec)) if sec and sec > 0 else None  # Dobot 내부 대기(초 단위)
+
+def _send(conn, obj):
+    try:
+        # 클라이언트로 JSON 한 줄(line-delimited) 송신(UTF-8, \n 종료) — 파싱 단순화
+        conn.sendall((json.dumps(obj, ensure_ascii=False, separators=(',',':'))+"\n").encode("utf-8"))
+    except Exception:
+        pass  # 송신 에러는 서버 생존성을 위해 무시(로그는 상위에서 처리 가능)
+
+def _safe_outputs_init():
+    try:
+        # 부팅/연결/해제 시 출력 안전화 루틴: 진공 OFF를 두 번 호출(디바운싱 개념)
+        vacuum_off(); time.sleep(0.05); vacuum_off()
+    except Exception:
+        pass  # m_lite 미초기화 등 예외 상황 무시
+
+# ===== 좌표 (유지/분리) =====
+# FEED(피더) 포지션: 공급 지점(픽업/리턴 공용)
+FEED_X, FEED_Y, FEED_ZPICK, FEED_ZTOP   = 33.49,  -274.68, -47.32, 140  # 픽업 Z, 상부 안전 Z
+
+# 컨베이어 “올려놓는 자리”: START 시퀀스에서 내려놓는 위치(상/하/픽업 Z 세트)
+CONV_LOAD_X, CONV_LOAD_Y, CONV_LOAD_Z, CONV_LOAD_ZTOP = 172.94, -232.05, 22, 140  # 하강 Z는 실제 높이에 맞춘 값
+
+# 센서(IR) 쪽 “집는 자리”: 런(con 신호) 발생 시 픽업하는 지점
+SEN_X, SEN_Y, SEN_ZPICK, SEN_ZTOP       = 191.8, 138.39,  19.67, 140  # 픽업 Z와 상부 Z 분리
+
+# (옵션) 보조 자리: 필요 시 확장 포지션
+A_X, A_Y, A_ZPICK, A_ZTOP               = 170.4,   172.7, 12.77, 140  # 현재 로직에선 미사용(확장 여지)
+
+# ===== 시퀀스 =====
+def start_sequence(conn):
+    vacuum_off()  # 시퀀스 시작 전 무조건 진공 OFF → 안전 상태 보장
+    # 1) FEED에서 집기(상부 → 픽업 → 흡착 → 상부)
+    ptp(FEED_X, FEED_Y, FEED_ZTOP)      # 상부 접근(충돌 방지)
+    ptp(FEED_X, FEED_Y, FEED_ZPICK)     # 픽업 높이로 하강
+    vacuum_on(); wait_s(1.0)            # 흡착 활성화 후 안정 대기(1초)
+    ptp(FEED_X, FEED_Y, FEED_ZTOP)      # 다시 상부로 상승(피딩 완료)
+    # 2) 컨베이어 올려놓기(상부 → 내려놓기 Z → 진공 OFF → 상부)
+    ptp(CONV_LOAD_X, CONV_LOAD_Y, CONV_LOAD_ZTOP)  # 컨베이어 상부 접근
+    ptp(CONV_LOAD_X, CONV_LOAD_Y, CONV_LOAD_Z)     # 내려놓기 높이로 하강
+    vacuum_off()                                    # 파트 릴리즈
+    _send(conn, {"conv_has_part": 1})   # 컨베이어에 파트가 “있음” 상태로 즉시 반영
+    ptp(CONV_LOAD_X, CONV_LOAD_Y, CONV_LOAD_ZTOP)  # 상부로 복귀
+    # 3) 홈 복귀 및 완료 신호
+    home()                               # 원점 복귀(다음 사이클 준비)
+    _send(conn, {"start_done": 1})       # START 시퀀스 완료 이벤트 송신
+
+def run_sequence(conn):
+    vacuum_off()  # 런 시작 전 진공 OFF(일관된 초기화)
+    # 1) 센서 자리에서 집기(상부 → 픽업 → 흡착 → conv_has_part=0 → 상부)
+    ptp(SEN_X, SEN_Y, SEN_ZTOP)          # 센서 포지션 상부 접근
+    ptp(SEN_X, SEN_Y, SEN_ZPICK)         # 픽업 높이로 하강
+    vacuum_on(); wait_s(1.0)             # 파트 흡착 및 안정 대기
+    _send(conn, {"conv_has_part": 0})    # 집자마자 컨베이어 “없음” 상태로 전파
+    ptp(SEN_X, SEN_Y, SEN_ZTOP)          # 상부로 상승
+    # 2) FEED에 내려놓기(상부 → 픽업 Z → 진공 OFF → 상부)
+    ptp(FEED_X, FEED_Y, FEED_ZTOP)       # FEED 상부 접근
+    ptp(FEED_X, FEED_Y, FEED_ZPICK)      # 내려놓기 높이(동일 Z 재활용)
+    vacuum_off()                          # 파트 릴리즈
+    ptp(FEED_X, FEED_Y, FEED_ZTOP)       # 상부 복귀
+    # 3) FEED에서 다시 집기(버퍼링 개념: FEED 재집기 후 컨베이어로 재투입)
+    wait_s(1.0)                           # 짧은 안정 대기
+    ptp(FEED_X, FEED_Y, FEED_ZTOP)       # 상부 재접근
+    ptp(FEED_X, FEED_Y, FEED_ZPICK)      # 픽업 높이로 하강
+    vacuum_on(); wait_s(1.0)             # 흡착 및 안정 대기
+    ptp(FEED_X, FEED_Y, FEED_ZTOP)       # 상부 복귀
+    # 4) 컨베이어 올려놓기(있음으로 전환) 및 홈
+    ptp(CONV_LOAD_X, CONV_LOAD_Y, CONV_LOAD_ZTOP)  # 컨베이어 상부 접근
+    ptp(CONV_LOAD_X, CONV_LOAD_Y, CONV_LOAD_Z)     # 내려놓기 높이
+    vacuum_off()                                    # 릴리즈
+    _send(conn, {"conv_has_part": 1})   # 컨베이어에 다시 “있음”
+    ptp(CONV_LOAD_X, CONV_LOAD_Y, CONV_LOAD_ZTOP)  # 상부 복귀
+    # 끝 처리
+    home()                               # 홈 복귀
+    _send(conn, {"job_done": 1})         # 런 사이클 완료 이벤트
+
+# ===== 상태 =====
+_RUN  = False  # RUN 플래그(START 시퀀스 수행 후에만 런 허용)
+_BUSY = False  # 동시 실행 방지 플래그(리엔트런시 차단)
+
+def _with_busy(conn, fn):
+    global _BUSY
+    if _BUSY: return                        # 이미 바쁜 상태면 무시(중복 명령 차단)
+    _BUSY = True; _send(conn, {"robot_busy": 1})  # 바쁜 상태 방송
+    try:
+        fn()                                # 실제 동작 실행
+    finally:
+        _BUSY = False                       # 상태 원복
+        _send(conn, {"robot_busy": 0})      # 바쁨 해제 이벤트
+
+def _handle(msg, conn):
+    global _RUN, _BUSY
+    msg = msg.strip()                  # 공백/개행 제거
+    if not msg: return                 # 빈 메시지 무시
+    try: obj = json.loads(msg)         # JSON 파싱 시도
+    except Exception: return           # 파싱 실패 시 무시(내구성 우선)
+    if not isinstance(obj, dict): return  # dict 아닌 페이로드는 무시
+
+    if int(obj.get("vacuum_off", 0)) == 1:
+        _with_busy(conn, vacuum_off); return  # 진공 OFF 단독 명령(안전 확보용)
+
+    if int(obj.get("home", 0)) == 1:
+        def _h():
+            vacuum_off(); home(); _send(conn, {"robot_homed": 1})  # 홈 완료 브로드캐스트
+        _with_busy(conn, _h); return
+
+    if int(obj.get("run", 0)) == 1:
+        _RUN = True                                 # RUN 상태 진입(START 수락)
+        _with_busy(conn, lambda: start_sequence(conn))  # START 시퀀스 실행
+        return
+
+    if _RUN and int(obj.get("con", 1)) == 0:
+        # 주의: obj.get("pick") == "conv" 힌트는 현재 무시(항상 SEN 포지션 사용)
+        _with_busy(conn, lambda: run_sequence(conn))    # CONV 센서 트리거로 런 수행
+        return
+
+def handle_client(conn):
+    _safe_outputs_init()                    # 클라이언트 접속 시 출력 안전화
+    _send(conn, {"robot_busy": int(_BUSY)}) # 현재 바쁨 상태 즉시 통지(초기 동기화)
+    buf = b""                               # 라인 버퍼(수신 데이터 조립용)
+    try:
+        while True:
+            chunk = conn.recv(1024)         # 최대 1024바이트씩 블록 수신
+            if not chunk:
+                time.sleep(0.01); continue  # 소켓 정지/지연 시 과점유 방지 대기
+            buf += chunk                    # 버퍼에 누적
+            while b"\n" in buf:             # 라인 단위 처리(\n 기준)
+                line, buf = buf.split(b"\n", 1)           # 한 줄 추출
+                try:
+                    _handle(line.decode("utf-8","ignore"), conn)  # UTF-8 디코드 후 핸들
+                except Exception:
+                    traceback.print_exc()   # 핸들러 내부 예외는 로그로 남김
+    except Exception:
+        traceback.print_exc()               # 연결 레벨 예외 로깅
+    finally:
+        try: conn.close()                   # 소켓 정리
+        except: pass
+        _safe_outputs_init()                # 연결 종료 시에도 출력 안전화
+
+def main():
+    if "m_lite" not in globals():
+        # Dobot 장치 객체 사전 존재 여부 확인(DobotLab Python Lab에서 m_lite 바인딩 필요)
+        raise RuntimeError("m_lite가 없습니다. Dobot 장치 연결을 먼저 수행하세요.")
+    _safe_outputs_init()                    # 서버 시작 시 안전화 1회 수행
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # TCP 스트림 소켓 생성
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # TIME_WAIT 재바인딩 허용
+    srv.bind((HOST, PORT)); srv.listen(1)   # 바인드 및 대기열 1(단일 접속 시나리오)
+    print(f"[TCP] listening on {HOST}:{PORT}")  # 리스닝 로그
+    try:
+        while True:
+            conn, addr = srv.accept()       # 클라이언트 접속 수락(블로킹)
+            print("[TCP] connected:", addr) # 접속 로그(디버깅용)
+            handle_client(conn)             # 단일 접속 처리 루프(연결 유지)
+    except KeyboardInterrupt:
+        pass                                # Ctrl+C 등 수신 시 조용히 종료 루트
+    finally:
+        try: srv.close()                    # 리스너 소켓 정리
+        finally:
+            _safe_outputs_init()            # 종료 시점에도 안전화 재수행
+
+if __name__ == "__main__":
+    print("[BOOT] Ready")  # 부팅 완료 로깅(런타임 가시성)
+    main()                 # 메인 엔트리 호출

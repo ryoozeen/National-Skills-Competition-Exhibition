@@ -1,0 +1,2 @@
+set(__QT_DEPLOY_TARGET_SafetyManagementSystem_FILE /home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/SafetyManagementSystem)
+set(__QT_DEPLOY_TARGET_SafetyManagementSystem_TYPE EXECUTABLE)

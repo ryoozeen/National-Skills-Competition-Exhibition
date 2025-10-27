@@ -1,0 +1,20 @@
+[
+{
+  "directory": "/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug",
+  "command": "/bin/g++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_WIDGETS_LIB -I/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/SafetyManagementSystem_autogen/include -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtCore -isystem /home/jin/Qt/6.9.1/gcc_64/include -isystem /home/jin/Qt/6.9.1/gcc_64/mkspecs/linux-g++ -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtWidgets -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtGui -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtNetwork -DQT_QML_DEBUG -g -std=gnu++17 -fdiagnostics-color=always -fPIC -o CMakeFiles/SafetyManagementSystem.dir/SafetyManagementSystem_autogen/mocs_compilation.cpp.o -c /home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/SafetyManagementSystem_autogen/mocs_compilation.cpp",
+  "file": "/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/SafetyManagementSystem_autogen/mocs_compilation.cpp",
+  "output": "CMakeFiles/SafetyManagementSystem.dir/SafetyManagementSystem_autogen/mocs_compilation.cpp.o"
+},
+{
+  "directory": "/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug",
+  "command": "/bin/g++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_WIDGETS_LIB -I/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/SafetyManagementSystem_autogen/include -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtCore -isystem /home/jin/Qt/6.9.1/gcc_64/include -isystem /home/jin/Qt/6.9.1/gcc_64/mkspecs/linux-g++ -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtWidgets -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtGui -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtNetwork -DQT_QML_DEBUG -g -std=gnu++17 -fdiagnostics-color=always -fPIC -o CMakeFiles/SafetyManagementSystem.dir/main.cpp.o -c /home/jin/project/SafetyManagementSystem/main.cpp",
+  "file": "/home/jin/project/SafetyManagementSystem/main.cpp",
+  "output": "CMakeFiles/SafetyManagementSystem.dir/main.cpp.o"
+},
+{
+  "directory": "/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug",
+  "command": "/bin/g++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_WIDGETS_LIB -I/home/jin/project/SafetyManagementSystem/build/Desktop_Qt_6_9_1-Debug/SafetyManagementSystem_autogen/include -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtCore -isystem /home/jin/Qt/6.9.1/gcc_64/include -isystem /home/jin/Qt/6.9.1/gcc_64/mkspecs/linux-g++ -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtWidgets -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtGui -isystem /home/jin/Qt/6.9.1/gcc_64/include/QtNetwork -DQT_QML_DEBUG -g -std=gnu++17 -fdiagnostics-color=always -fPIC -o CMakeFiles/SafetyManagementSystem.dir/mainwindow.cpp.o -c /home/jin/project/SafetyManagementSystem/mainwindow.cpp",
+  "file": "/home/jin/project/SafetyManagementSystem/mainwindow.cpp",
+  "output": "CMakeFiles/SafetyManagementSystem.dir/mainwindow.cpp.o"
+}
+]
