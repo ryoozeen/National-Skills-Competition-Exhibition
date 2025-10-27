@@ -19,9 +19,10 @@
 
 ## 기술 스택
 - OS: Windows, Ubuntu
-- Language/Lib: Python 3.x, C++17, Qt 6 (Core/Widgets/Network/Sql), OpenCV, YOLO
+- Language/Lib: Python, C++17, Qt 6 (Core/Widgets/Network/Sql), OpenCV, YOLO
 - Build: CMake, Qt Creator, VSCode
 - DB: MySQL 8.0
+- 머신러닝/비전: YOLOv8 추론, 실시간 추적/후처리, FastAPI↔Qt 파이프라인 연동, (경험 포함) YOLOv8 학습/튜닝·데이터셋 구축/라벨링/증강
 - 기타: Arduino(설비 제어), TCP/IP
 
 ---
